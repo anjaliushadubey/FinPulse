@@ -2,7 +2,7 @@
 
 FinPulse is a modern, full-stack personal finance management application that helps users track their expenses, manage budgets, and take control of their financial life.
 
-![FinPulse Logo](client/public/logo192.png)
+![FinPulse Logo](client/public/logo194.png)
 
 ## ✨ Features
 
@@ -115,7 +115,7 @@ This project is licensed under the ISC License.
 
 ## 👥 Authors
 
-- **Anjali Usha Dubey** - *Initial work*
+- **Anjali Dubey** - *Initial work*
 
 ## 🙏 Acknowledgments
 
