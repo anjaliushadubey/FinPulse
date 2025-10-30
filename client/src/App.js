@@ -34,42 +34,51 @@ const App = () => {
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [currentView, setCurrentView] = useState('loading'); 
 
+    // Define setAuthToken using useCallback
     const setAuthToken = useCallback((newToken) => {
         if (newToken) {
             localStorage.setItem('token', newToken);
             setToken(newToken);
-            // After login/register, check if budgets exist before deciding next step
+            // Check setup right after setting token, before changing view
             checkUserSetup(newToken); 
         } else {
             localStorage.removeItem('token');
             setToken(null);
             setCurrentView('welcome');
         }
-    }, []); // Removed checkUserSetup from dependencies
-    
-    // Function to check if user needs onboarding
+    }, []); // Empty dependency array, setAuthToken itself doesn't depend on outside vars
+
+    // Define checkUserSetup using useCallback
     const checkUserSetup = useCallback(async (currentToken) => {
          if (!currentToken) {
              setCurrentView('welcome');
              return;
          }
         try {
+            console.log("Checking user setup with token:", currentToken); // Debug log
             const config = { headers: { 'x-auth-token': currentToken } };
             const budgetRes = await axios.get('/api/budgets', config);
-            if (budgetRes.data.budgets && budgetRes.data.budgets.length > 0) {
+            console.log("Budget response:", budgetRes.data); // Debug log
+            // Check specifically if budgets array exists and is not empty
+            if (budgetRes.data.budgets && budgetRes.data.budgets.length > 0) { 
+                 console.log("User has budgets, going to dashboard"); // Debug log
                  setCurrentView('dashboard'); 
             } else {
+                 // If no budgets or empty array, start onboarding
+                 console.log("User has no budgets, starting onboarding"); // Debug log
                  setCurrentView('linkAccount'); 
             }
         } catch (error) {
-             console.error("Error checking user setup:", error);
-             setAuthToken(null); 
+             console.error("Error checking user setup:", error.response?.data || error.message); // Log more details
+             // If error likely means token is invalid or backend issue
+             setAuthToken(null); // Force logout
         }
-    }, [setAuthToken]);
+    }, [setAuthToken]); // Include setAuthToken as dependency
 
 
     useEffect(() => {
         // On initial load, check token and setup status
+        console.log("Initial load effect, token:", token); // Debug log
         checkUserSetup(token);
     }, [checkUserSetup, token]); 
 
@@ -86,7 +95,7 @@ const App = () => {
                 return <WelcomeScreen onGetStarted={handleGetStarted} />;
             case 'auth':
                 return (
-                    <div className="h-full bg-gradient-to-br from-indigo-600 to-indigo-800 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="h-full bg-gradient-to-br from-indigo-600 to-indigo-800 flex items-center justify-center p-4 overflow-y-auto"> 
                         <AuthScreen setAuthToken={setAuthToken} />
                     </div>
                 );
@@ -103,7 +112,7 @@ const App = () => {
 
     return (
         <div className="bg-gray-200 flex justify-center items-center h-screen p-4">
-            {/* Phone Shell with corrected height */}
+            {/* Phone Shell */}
             <div className="w-full max-w-sm h-full max-h-[896px] bg-white rounded-[40px] border-[10px] border-black overflow-hidden shadow-2xl flex flex-col">
                 {renderView()}
             </div>
@@ -115,7 +124,6 @@ const App = () => {
 // --- ONBOARDING SCREENS ---
 const WelcomeScreen = ({ onGetStarted }) => (
     <div className="h-full flex flex-col justify-between p-8 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white text-center">
-        {/* Content remains the same */}
         <div/>
         <div>
             <div className="flex justify-center items-center mb-4"><svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
@@ -129,13 +137,11 @@ const WelcomeScreen = ({ onGetStarted }) => (
 );
 
 const LinkAccountScreen = ({ onLinkAccount, token }) => {
-    // ... (Functionality remains the same, adjusted padding/margins slightly)
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
     const [ifsc, setIfsc] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-
 
     const handleLink = async (e) => {
         e.preventDefault();
@@ -146,7 +152,7 @@ const LinkAccountScreen = ({ onLinkAccount, token }) => {
             const accountData = { bankName, accountNumber, ifsc };
             await axios.post('/api/accounts', accountData, config);
             setIsLoading(false);
-            onLinkAccount(); // Move to the next step
+            onLinkAccount(); 
         } catch (err) {
             setIsLoading(false);
             setError(err.response?.data?.msg || 'Could not link account. Please try again.');
@@ -155,17 +161,17 @@ const LinkAccountScreen = ({ onLinkAccount, token }) => {
     };
 
     return (
-        <div className="h-full bg-gray-100 flex flex-col justify-center items-center p-6 text-center"> {/* Reduced padding */}
-             <div className="bg-indigo-100 w-24 h-24 rounded-full mx-auto flex items-center justify-center mb-4"> {/* Reduced margin */}
+        <div className="h-full bg-gray-100 flex flex-col justify-center items-center p-6 text-center overflow-y-auto">
+             <div className="bg-indigo-100 w-24 h-24 rounded-full mx-auto flex items-center justify-center mb-4 flex-shrink-0"> 
                  <svg className="w-16 h-16 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
              </div>
-             <h2 className="text-2xl font-bold text-gray-800">Link Your Bank Account</h2> {/* Reduced text size */}
+             <h2 className="text-2xl font-bold text-gray-800">Link Your Bank Account</h2> 
              <p className="text-gray-600 mt-2 text-sm leading-relaxed">This allows us to simulate incoming transaction notifications.</p>
-             <form onSubmit={handleLink} className="mt-6 w-full space-y-3"> {/* Reduced spacing */}
+             <form onSubmit={handleLink} className="mt-6 w-full space-y-3"> 
                  <input type="text" placeholder="Bank Name" value={bankName} onChange={(e) => setBankName(e.target.value)} className="w-full px-4 py-2 border bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/>
                  <input type="text" placeholder="Account Number" value={accountNumber} onChange={(e) => setAccountNumber(e.target.value)} className="w-full px-4 py-2 border bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/>
                  <input type="text" placeholder="IFSC Code" value={ifsc} onChange={(e) => setIfsc(e.target.value)} className="w-full px-4 py-2 border bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/>
-                 {error && <p className="text-red-500 text-xs">{error}</p>} {/* Reduced text size */}
+                 {error && <p className="text-red-500 text-xs">{error}</p>} 
                  <button type="submit" className="mt-4 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl text-lg hover:bg-indigo-700 transition shadow-lg disabled:opacity-50" disabled={isLoading}>
                     {isLoading ? 'Linking...' : 'Link Account & Continue'}
                  </button>
@@ -175,7 +181,6 @@ const LinkAccountScreen = ({ onLinkAccount, token }) => {
 };
 
 const SetBudgetsScreen = ({ onSetBudgets, token }) => {
-    // ... (Functionality remains the same, adjusted padding/margins slightly)
     const [budgets, setBudgets] = useState([
         { category: 'Food', limit: 5000, icon: '🍕' },
         { category: 'Shopping', limit: 4000, icon: '🛍️' },
@@ -184,7 +189,6 @@ const SetBudgetsScreen = ({ onSetBudgets, token }) => {
     ]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-
 
     const handleBudgetChange = (index, value) => {
         const newBudgets = [...budgets];
@@ -209,24 +213,24 @@ const SetBudgetsScreen = ({ onSetBudgets, token }) => {
     };
 
     return (
-        <div className="h-full bg-gray-100 flex flex-col justify-center p-6"> {/* Reduced padding */}
-            <header className="text-center mb-6"> {/* Reduced margin */}
-                <h2 className="text-2xl font-bold text-gray-800">Set Your Budgets</h2> {/* Reduced text size */}
+        <div className="h-full bg-gray-100 flex flex-col justify-center p-6 overflow-y-auto">
+            <header className="text-center mb-6 flex-shrink-0"> 
+                <h2 className="text-2xl font-bold text-gray-800">Set Your Budgets</h2> 
                 <p className="text-gray-500 text-sm">You can always change these later.</p>
             </header>
-            <div className="space-y-4"> {/* Reduced spacing */}
+            <div className="space-y-4 flex-grow"> 
                 {budgets.map((budget, index) => (
                     <div key={budget.category}>
-                        <label className="flex justify-between items-center font-semibold text-gray-700 text-sm"> {/* Reduced text size */}
+                        <label className="flex justify-between items-center font-semibold text-gray-700 text-sm"> 
                             <span>{budget.icon} {budget.category}</span>
-                            <span className="font-bold text-indigo-600 text-md">₹{budget.limit.toLocaleString()}</span> {/* Reduced text size */}
+                            <span className="font-bold text-indigo-600 text-md">₹{budget.limit.toLocaleString()}</span> 
                         </label>
                         <input type="range" min="500" max="50000" step="500" value={budget.limit} onChange={(e) => handleBudgetChange(index, e.target.value)} className="w-full mt-1" disabled={isLoading}/>
                     </div>
                 ))}
             </div>
-            {error && <p className="text-red-500 text-xs text-center mt-3">{error}</p>} {/* Reduced text size */}
-            <button onClick={handleFinish} className="mt-6 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl text-lg hover:bg-indigo-700 transition shadow-lg disabled:opacity-50" disabled={isLoading}>
+            {error && <p className="text-red-500 text-xs text-center mt-3">{error}</p>} 
+            <button onClick={handleFinish} className="mt-6 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl text-lg hover:bg-indigo-700 transition shadow-lg disabled:opacity-50 flex-shrink-0" disabled={isLoading}>
                 {isLoading ? 'Saving...' : 'Finish Setup'}
             </button>
         </div>
@@ -235,12 +239,11 @@ const SetBudgetsScreen = ({ onSetBudgets, token }) => {
 
 
 // --- AUTHENTICATION COMPONENTS ---
-// ... (AuthScreen, RegisterForm, LoginForm - adjusted slightly for space)
 const AuthScreen = ({ setAuthToken }) => {
     const [isRegister, setIsRegister] = useState(true);
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-2xl w-full"> {/* Reduced padding */}
-            <div className="flex justify-center items-center mb-4"> {/* Reduced margin */}
+        <div className="bg-white p-6 rounded-2xl shadow-2xl w-full"> 
+            <div className="flex justify-center items-center mb-4"> 
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 <h1 className="text-3xl font-extrabold text-gray-800 ml-2">FinPulse</h1>
             </div>
@@ -259,7 +262,6 @@ const RegisterForm = ({ setIsRegister, setAuthToken }) => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-
     const handleRegister = async (e) => {
         e.preventDefault();
         setError('');
@@ -276,16 +278,16 @@ const RegisterForm = ({ setIsRegister, setAuthToken }) => {
 
     return (
         <div>
-            <h2 className="text-xl font-bold text-center text-gray-800">Create Your Account</h2> {/* Reduced size */}
-            <form onSubmit={handleRegister} className="mt-6 space-y-3"> {/* Reduced margin/spacing */}
-                <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/> {/* Reduced padding/size */}
-                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/> {/* Reduced padding/size */}
+            <h2 className="text-xl font-bold text-center text-gray-800">Create Your Account</h2> 
+            <form onSubmit={handleRegister} className="mt-6 space-y-3"> 
+                <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/> 
+                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/> 
                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50" disabled={isLoading}>
                     {isLoading ? 'Registering...' : 'Register'}
                 </button>
             </form>
-            {error && <p className="text-red-500 text-xs text-center mt-3">{error}</p>} {/* Reduced size/margin */}
-            <p className="text-center text-xs text-gray-500 mt-4"> {/* Reduced size/margin */}
+            {error && <p className="text-red-500 text-xs text-center mt-3">{error}</p>} 
+            <p className="text-center text-xs text-gray-500 mt-4"> 
                 Already have an account? <button onClick={() => setIsRegister(false)} className="font-semibold text-indigo-600 hover:underline" disabled={isLoading}>Login</button>
             </p>
         </div>
@@ -293,12 +295,10 @@ const RegisterForm = ({ setIsRegister, setAuthToken }) => {
 };
 
 const LoginForm = ({ setIsRegister, setAuthToken }) => {
-    // ... (Similar size adjustments as RegisterForm)
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -314,18 +314,28 @@ const LoginForm = ({ setIsRegister, setAuthToken }) => {
         }
     };
 
+    const handleForgotPassword = () => {
+        // For hackathon: Just log a message. Real implementation requires backend.
+        console.log("Forgot Password clicked!");
+        alert("Password reset functionality is not implemented in this demo.");
+    };
+
     return (
         <div>
-            <h2 className="text-xl font-bold text-center text-gray-800">Welcome Back!</h2> {/* Reduced size */}
-            <form onSubmit={handleLogin} className="mt-6 space-y-3"> {/* Reduced margin/spacing */}
-                <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/> {/* Reduced padding/size */}
-                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/> {/* Reduced padding/size */}
+            <h2 className="text-xl font-bold text-center text-gray-800">Welcome Back!</h2> 
+            <form onSubmit={handleLogin} className="mt-6 space-y-3"> 
+                <input type="email" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border bg-gray-50 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/> 
+                <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm" required disabled={isLoading}/> 
+                 {/* Forgot Password Link */}
+                 <div className="text-right">
+                     <button type="button" onClick={handleForgotPassword} className="text-xs text-indigo-600 hover:underline" disabled={isLoading}>Forgot Password?</button>
+                 </div>
                 <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50" disabled={isLoading}>
                     {isLoading ? 'Logging in...' : 'Login'}
                 </button>
             </form>
-             {error && <p className="text-red-500 text-xs text-center mt-3">{error}</p>} {/* Reduced size/margin */}
-            <p className="text-center text-xs text-gray-500 mt-4"> {/* Reduced size/margin */}
+             {error && <p className="text-red-500 text-xs text-center mt-3">{error}</p>} 
+            <p className="text-center text-xs text-gray-500 mt-4"> 
                 Don't have an account? <button onClick={() => setIsRegister(true)} className="font-semibold text-indigo-600 hover:underline" disabled={isLoading}>Register</button>
             </p>
         </div>
@@ -346,16 +356,21 @@ const Dashboard = ({ token, setAuthToken }) => {
             const res = await axios.get('/api/budgets', config);
             setBudgets(res.data.budgets || []);
         } catch (err) {
-            console.error(err);
+            console.error("Fetch Budgets Error:", err);
             if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-                setAuthToken(null);
+                setAuthToken(null); 
+            } else {
+                 // setError('Could not load budget data.'); 
             }
         }
     }, [token, setAuthToken]);
 
     useEffect(() => {
-        fetchBudgets();
-    }, [fetchBudgets]);
+        if (token) { 
+            fetchBudgets();
+        }
+    }, [fetchBudgets, token]); 
+
 
     const handleSimulatePayment = () => {
         const transaction = { description: 'Zomato Order', amount: 450 };
@@ -365,10 +380,19 @@ const Dashboard = ({ token, setAuthToken }) => {
 
     const handleCategorize = async (category) => {
         setShowCategorizationModal(false);
+        if (!simulatedTransaction) return; 
+
         try {
             const config = { headers: { 'x-auth-token': token } };
-            const res = await axios.post('/api/budgets/transaction', { ...simulatedTransaction, category }, config);
+            const transactionData = { 
+                ...simulatedTransaction, 
+                category, 
+                amount: Number(simulatedTransaction.amount) || 0 
+            }; 
+            const res = await axios.post('/api/budgets/transaction', transactionData, config);
             
+            setBudgets(res.data.budgets || []); 
+
             const updatedBudget = res.data.budgets.find(b => b.category === category);
             if (updatedBudget) {
                 const limit = updatedBudget.limit > 0 ? updatedBudget.limit : 1;
@@ -377,9 +401,11 @@ const Dashboard = ({ token, setAuthToken }) => {
                     setShowWarningModal(true);
                 }
             }
-            fetchBudgets();
         } catch (err) {
              console.error("Categorization failed", err);
+             // setError('Failed to save transaction.');
+        } finally {
+            setSimulatedTransaction(null); 
         }
     };
     
@@ -437,13 +463,14 @@ const BudgetCard = ({ budget }) => {
                 </div>
                 <div className="mt-1 text-xs text-gray-500 space-y-1 border-t pt-1"> {/* Reduced margin/spacing */}
                     <h4 className="font-bold text-gray-400 uppercase tracking-wider text-right text-[10px]">Recent</h4> {/* Reduced size */}
-                    {transactions.slice(-2).map((t, index) => ( 
+                    {/* Ensure transactions is an array before slicing */}
+                    {(transactions || []).slice(-2).map((t, index) => ( 
                         <div key={t._id || index} className="flex justify-between text-[10px]"> {/* Reduced size */}
                             <span>- {t.description}</span>
                             <span>₹{t.amount}</span>
                         </div>
                     ))}
-                    {transactions.length === 0 && <p className="text-right italic text-[10px]">No transactions yet.</p>}
+                    {(transactions || []).length === 0 && <p className="text-right italic text-[10px]">No transactions yet.</p>}
                 </div>
             </div>
         </div>
@@ -457,8 +484,9 @@ const CategorizationModal = ({ transaction, onCategorize, onCancel }) => (
     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center p-4 z-50">
         <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm text-center">
             <p className="text-gray-600 mb-2">New UPI Transaction Detected!</p>
-            <p className="text-sm text-gray-500">{transaction.description}</p>
-            <p className="text-5xl font-bold text-gray-900 my-4">₹{transaction.amount}</p>
+            {/* Make sure transaction exists before accessing properties */}
+            <p className="text-sm text-gray-500">{transaction?.description || 'Unknown Transaction'}</p>
+            <p className="text-5xl font-bold text-gray-900 my-4">₹{transaction?.amount || 0}</p>
             <p className="text-lg font-semibold mb-6">What was this for?</p>
             <div className="grid grid-cols-2 gap-4">
                 <button onClick={() => onCategorize('Food')} className="bg-yellow-100 text-yellow-800 font-semibold p-4 rounded-lg text-lg flex items-center justify-center space-x-2 transition transform hover:scale-105"><span>🍕</span><span>Food</span></button>
