@@ -83,6 +83,31 @@ npm start
 
 The application will be available at `http://localhost:3000`
 
+## 🌐 Live Demo
+
+<div align="center">
+
+[![Deployed on Render](https://img.shields.io/badge/Render-Live_Demo-purple?style=for-the-badge&logo=render)](https://finpulse-client.onrender.com)
+
+Experience FinPulse live! The application is deployed and running on Render.
+
+| Environment | URL |
+|------------|-----|
+| Frontend App | [https://finpulse-client.onrender.com](https://finpulse-client.onrender.com) |
+| Backend API | [https://finpulse-api.onrender.com](https://finpulse-api.onrender.com) |
+
+</div>
+
+### Deployment Status
+[![Render Deployment](https://img.shields.io/badge/render-check_status-blue?logo=render)](https://dashboard.render.com/status/finpulse)
+
+### Why Render?
+- 🚀 Automatic deployments from GitHub
+- ⚡ High performance and reliability
+- 🔒 SSL/TLS encryption out of the box
+- 🔄 Zero-downtime updates
+- 📊 Built-in monitoring and logs
+
 ## 📁 Project Structure
 
 ```
