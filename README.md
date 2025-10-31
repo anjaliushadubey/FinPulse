@@ -94,7 +94,7 @@ Experience FinPulse live! The application is deployed and running on Render.
 | Environment | URL |
 |------------|-----|
 | Frontend App | [https://finpulse-client.onrender.com](https://finpulse-client.onrender.com) |
-| Backend API | [https://finpulse-api.onrender.com](https://finpulse-api.onrender.com) |
+| Backend API | [https://finpulse-api.onrender.com](https://finpulse-x05f.onrender.com) |
 
 </div>
 
